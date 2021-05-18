@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue May 18 20:33:51 2021
+Main script to analyse chemical recipes (CheMastery)
 
 @author: Viktoria
 """
@@ -27,19 +27,21 @@ def main_chemicals():
 
 
     main = os.getcwd()
-    os.chdir(main)
+    code = os.path.join(main, 'notebooks')
+    data = os.path.join(main, 'raw data')
+    preproc = os.path.join(main, 'preprocessed_data')
     
+
     
+    os.chdir(data)
     f = open('exercise_experimentals.txt', 'rb')
     doc = Document.from_file(f)
-    
     
     
     # ## Question 1. What was added to what?
     
     # ### Step 1. Get the sentences of the text up until the last occurrence of addition. <br> Step 2. Get the named entities that stand for the ingredients. <br> Step 3. Get the syntactic position of the ingredients to find out 'what was added to what'. In 'X was added to Y' X is the subject, Y is the object. 
-    
-    # In[ ]:
+
     
     
     #Create a list of strings (recipes) which contains the texts of each recipe up until the last occurrence of the phrase that contains the addition
@@ -66,8 +68,7 @@ def main_chemicals():
         paragraph = ' '.join([p for p in paragraph])
         recipes.append(paragraph)
     
-    
-    # In[ ]:
+
     
     
     #Get a list of all the chemical elements in each recipe
@@ -75,9 +76,7 @@ def main_chemicals():
     entities=[]
     for i in range(len(doc.cems)):
         entities.append(str(doc.cems[i]).lower())
-    
-    
-    # In[ ]:
+
     
     
     # Create dictionaries for each recipe (indices) with the name of the entity, starting position, ending position. 
@@ -109,8 +108,7 @@ def main_chemicals():
         
         tagged_entities.append(indices)
     
-    
-    # In[ ]:
+ 
     
     
     # Add the named entities to spacy, then get the information which one was the subject and which one the object of the sentence
@@ -140,24 +138,19 @@ def main_chemicals():
         
         corpora.append(spacy_doc)
     
-    
-    # In[ ]:
+
     
     
     #Check on a single recipe if the tagging process was successful
     
     #spacy_doc.has_annotation("TAG") #gives True
-    
-    
-    # In[ ]:
+
     
     
     #Visualise the sentence structure of a single recipe
     
     #displacy.render(spacy_doc, style="dep")
-    
-    
-    # In[ ]:
+
     
     
     # Now find out whether the ingredient in the recipe was a subject or an object
@@ -180,8 +173,7 @@ def main_chemicals():
                         #add the syntactic information
                         indices[k] = token.dep_
     
-    
-    # In[ ]:
+
     
     
     #In a structure "X was added to Y", X is the subject, i.e. the chemical being added & Y is object, i.e. the recipient
@@ -197,30 +189,22 @@ def main_chemicals():
             
         return value
     
-    
-    # In[ ]:
+
     
     
     # Prepare results to Questions 1.
     
-    res_1=[]
+    res1=[]
     
     for i in tagged_entities:
         ingredients = {key:clean_results(value) for (key,value) in i.items()}
-        res_1.append(ingredients)
-    
-    
-    # In[ ]:
-    
-    
-    res_1
+        res1.append(ingredients)
     
     
     # ## Question 2. How much of each constituent was added?
     
     # ### Quantities are either in brackets after the named entity (0.01 mmol, 4.28 mg), or shortly before it '2 ml dry toluene'
-    
-    # In[ ]:
+
     
     
     res2=[]
@@ -256,15 +240,12 @@ def main_chemicals():
         res2.append(res)
     
     
-    # ### Question 3. Type of addition: in portions or continuous?
+    # ## Question 3. Type of addition: in portions or continuous?
     
-    # In[ ]:
+    # Look for diagnostic phrases that inform us about the type of addition (identified in the data)
+    # These will be stored in a text file so that the users of the code can edit these expressions any time
     
-    
-    #Look for diagnostic phrases that inform us about the type of addition (identified in the data)
-    #These will be stored in a text file so that the users of the code can edit these expressions any time
-    
-    os.chdir(main)
+    os.chdir(code)
     
     with open('continuous_addition.txt', 'r+') as f:
         cont = f.readlines()  
@@ -274,46 +255,46 @@ def main_chemicals():
         por = f.readlines()  
         por = [re.sub('\n', '', p.lower()) for p in por]
     
+
     
-    # In[ ]:
-    
-    
-    pattern = re.compile(re.escape(entity) + r"\s*\(.*?\)")
-    
-    
-    # In[ ]:
-    
-    
-    res3 = []
+    res3=[]
     
     for i,recipe in enumerate(recipes):
         
         if any(c in recipe for c in cont) and any(p in recipe for p in por):
-            res3.append('Recipe ' + str(i+1) + ': Mention of both continuous and in-portion addition')
+            res3.append('Mention of both continuous and in-portion addition')
             
         elif any(c in recipe for c in cont):
-            res3.append('Recipe ' + str(i+1) + ': Continuous addition')
+            res3.append('Continuous')
             
         elif any(p in recipe for p in por):
-            res3.append('Recipe ' + str(i+1) + ': Addition in portions')
-            
+            res3.append('Addition in portions')
+    
         else:
-            res3.append('Recipe ' + str(i+1) + ': Type of addition unknown')
+            res3.append('Unknown')
+    
+    
+    
+    # ## Save results
+    
+    
+    results = {}
+    
+    for i in range(len(doc)):
+        
+        res={}
+        
+        res['Recipe']= str(i+1)
+        res['Text'] = doc[i].text
+        res['Ingredients'] = {str(a[0]):str(a[1]) for a in res1[i].items()}
+        res['Quantities'] = [str(a) for a in res2[i]]
+        res['Type of addition'] = str(res3[i])
+        
+        results[i+1] = res
         
         
         
-    
-    
-    return res3
-    
-    # In[ ]:
-    
-    
-
-    
-    
-    # In[ ]:
-    
+    return results
     
     
     

@@ -11,4 +11,4 @@ def test():
     
     x = main_chemicals()
     
-    assert isinstance(x, list)
+    assert isinstance(x, dict)
